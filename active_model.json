@@ -1,0 +1,7 @@
+{
+  "type": "tinygpt",
+  "model_id": "tinygpt",
+  "checkpoint": "model.pt",
+  "n_layers": null,
+  "updated_at": 1783274257.4597359
+}
