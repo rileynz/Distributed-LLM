@@ -257,11 +257,12 @@
   .connect-band p{color:#AEBAB5; font-size:14.5px; max-width:44ch;}
   .field{margin-bottom:16px;}
   .field label{display:block; font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#4FB89D; margin-bottom:7px;}
-  .field select, .field input{
+  .field select, .field input, .field textarea{
     width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--navy-line); color:#F2F4F3;
     padding:11px 12px; border-radius:3px; font-family:var(--sans); font-size:14px; outline:none;
   }
-  .field select:focus, .field input:focus{border-color:#4FB89D;}
+  .field textarea{resize:vertical; min-height:80px;}
+  .field select:focus, .field input:focus, .field textarea:focus{border-color:#4FB89D;}
   .connect-note{font-family:var(--mono); font-size:11.5px; color:#6B7976; margin-top:6px;}
 
   /* footer */
@@ -310,7 +311,6 @@
 
 <main id="top">
 
-  <!-- ================= HERO ================= -->
   <div class="hero-band">
     <div class="wrap hero-grid">
       <div>
@@ -388,7 +388,6 @@
     </div>
   </div>
 
-  <!-- ================= THE CONSTRAINT ================= -->
   <section id="constraint">
     <div class="wrap reveal">
       <div class="section-head">
@@ -407,7 +406,6 @@
     </div>
   </section>
 
-  <!-- ================= APPROACH ================= -->
   <section class="alt" id="approach">
     <div class="wrap">
       <div class="section-head reveal">
@@ -448,7 +446,6 @@
     </div>
   </section>
 
-  <!-- ================= CAPABILITIES ================= -->
   <section id="capabilities">
     <div class="wrap">
       <div class="section-head reveal">
@@ -479,7 +476,6 @@
     </div>
   </section>
 
-  <!-- ================= NODE SPEC (xfra-style hardware sheet) ================= -->
   <section class="alt" id="node">
     <div class="wrap reveal">
       <div class="section-head">
@@ -524,7 +520,6 @@
     </div>
   </section>
 
-  <!-- ================= DASHBOARD ================= -->
   <section id="dashboard">
     <div class="wrap">
       <div class="section-head reveal">
@@ -588,7 +583,6 @@
     </div>
   </section>
 
-  <!-- ================= CONSTRAINTS (formerly "honest limitations") ================= -->
   <section class="alt" id="constraints">
     <div class="wrap reveal">
       <div class="section-head">
@@ -636,7 +630,6 @@
     </div>
   </section>
 
-  <!-- ================= ROADMAP ================= -->
   <section id="roadmap">
     <div class="wrap reveal">
       <div class="section-head">
@@ -654,7 +647,6 @@
     </div>
   </section>
 
-  <!-- ================= TECHNICAL BRIEF / QUICK START ================= -->
   <section class="alt" id="start">
     <div class="wrap two-col reveal">
       <div>
@@ -686,7 +678,6 @@ python coordinator/client.py <span class="prompt">"tell me a story"</span>
     </div>
   </section>
 
-  <!-- ================= CONNECT ================= -->
   <section id="connect">
     <div class="wrap reveal">
       <div class="connect-band">
@@ -697,26 +688,22 @@ python coordinator/client.py <span class="prompt">"tell me a story"</span>
             <p>Building something similar, evaluating this for a role, or want the full source and technical documentation — leave a note and a way to reach you.</p>
           </div>
           <form onsubmit="return handleConnect(event)">
+            <input type="hidden" id="c-access-key" value="fc06cb2f-21af-464f-9925-f6dbc20bed15">
+
             <div class="field">
-              <label for="c-category">I am a&hellip;</label>
-              <select id="c-category">
-                <option>Fellow builder / contributor</option>
-                <option>Recruiter / hiring manager</option>
-                <option>Researcher / academic</option>
-                <option>Just curious</option>
-                <option>Other</option>
-              </select>
+              <label for="c-name">Name</label>
+              <input id="c-name" type="text" placeholder="Your name" required>
             </div>
             <div class="field">
               <label for="c-email">Email</label>
               <input id="c-email" type="email" placeholder="you@domain.com" required>
             </div>
             <div class="field">
-              <label for="c-note">Note (optional)</label>
-              <input id="c-note" type="text" placeholder="What you're looking for">
+              <label for="c-message">Message</label>
+              <textarea id="c-message" placeholder="What you're looking for" required></textarea>
             </div>
             <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:6px;">Submit</button>
-            <p class="connect-note" id="connect-status">This is a static page &mdash; wire this form to an inbox, form service, or mailto link before publishing.</p>
+            <p class="connect-note" id="connect-status">Ready to send access request.</p>
           </form>
         </div>
       </div>
@@ -781,8 +768,47 @@ python coordinator/client.py <span class="prompt">"tell me a story"</span>
   function handleConnect(e){
     e.preventDefault();
     const status = document.getElementById('connect-status');
-    status.textContent = 'Form captured locally only — connect it to a real endpoint before this goes live.';
-    status.style.color = '#4FB89D';
+    
+    const accessKey = document.getElementById('c-access-key').value;
+    const name = document.getElementById('c-name').value;
+    const email = document.getElementById('c-email').value;
+    const message = document.getElementById('c-message').value;
+
+    status.textContent = 'Sending your request...';
+    status.style.color = '#78828A';
+
+    const formData = {
+      access_key: accessKey,
+      subject: `New Distributed LLM Inquiry from ${name}`,
+      from_name: name,
+      email: email,
+      message: message
+    };
+
+    fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    })
+    .then(async (response) => {
+      let json = await response.json();
+      if (response.status === 200) {
+        status.textContent = 'Access request submitted successfully! We will be in touch.';
+        status.style.color = '#4FB89D';
+        e.target.reset();
+      } else {
+        status.textContent = json.message || 'Something went wrong. Please try again.';
+        status.style.color = '#B8641B';
+      }
+    })
+    .catch(error => {
+      status.textContent = 'Network error. Please check your connection and try again.';
+      status.style.color = '#B8641B';
+    });
+
     return false;
   }
 </script>
