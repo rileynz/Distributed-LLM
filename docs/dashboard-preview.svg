@@ -1,0 +1,89 @@
+<svg width="900" height="620" viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <title>distributed-llm dashboard preview</title>
+  <desc>Preview mockup of the web dashboard: pipeline panel with live node status, a generate panel with streamed output, and a models panel with quantization controls.</desc>
+
+  <rect width="900" height="620" fill="#0d1117"/>
+
+  <!-- header -->
+  <line x1="0" y1="56" x2="900" y2="56" stroke="#30363d" stroke-width="1"/>
+  <text x="24" y="34" font-size="15" font-weight="600" fill="#e6edf3">~/distributed-llm<tspan fill="#58a6ff">▌</tspan></text>
+  <rect x="742" y="18" width="134" height="24" rx="12" fill="none" stroke="#2f5f3c"/>
+  <text x="809" y="34" text-anchor="middle" font-size="11" fill="#3fb950">● chain ready</text>
+
+  <!-- pipeline panel -->
+  <rect x="24" y="80" width="852" height="176" rx="6" fill="#161b22" stroke="#30363d"/>
+  <text x="44" y="106" font-size="13" font-weight="600" fill="#8b949e"># pipeline</text>
+
+  <!-- you box -->
+  <rect x="44" y="122" width="120" height="52" rx="6" fill="#0d1117" stroke="#30363d"/>
+  <text x="56" y="142" font-size="12" font-weight="600" fill="#e6edf3">● you</text>
+  <text x="56" y="158" font-size="10" fill="#8b949e">browser</text>
+
+  <text x="176" y="152" font-size="14" fill="#8b949e">→</text>
+
+  <!-- node A (active/highlighted) -->
+  <rect x="196" y="122" width="130" height="52" rx="6" fill="#0d1117" stroke="#58a6ff" stroke-width="1.5"/>
+  <text x="208" y="142" font-size="12" font-weight="600" fill="#e6edf3">● nodeA</text>
+  <text x="208" y="158" font-size="10" fill="#8b949e">layers 0-1</text>
+  <text x="208" y="170" font-size="10" fill="#58a6ff">2.1ms</text>
+
+  <text x="338" y="152" font-size="14" fill="#8b949e">→</text>
+
+  <!-- node B -->
+  <rect x="358" y="122" width="130" height="52" rx="6" fill="#0d1117" stroke="#30363d"/>
+  <text x="370" y="142" font-size="12" font-weight="600" fill="#e6edf3">● nodeB</text>
+  <text x="370" y="158" font-size="10" fill="#8b949e">layers 2-3</text>
+
+  <text x="500" y="152" font-size="14" fill="#8b949e">↩</text>
+
+  <text x="44" y="200" font-size="11" fill="#8b949e">tokens flow left → right through each node's layers, then logits stream back to you</text>
+
+  <text x="44" y="228" font-size="11" fill="#8b949e">model: <tspan fill="#e6edf3">tinyllama-1.1b</tspan>    quantization: <tspan fill="#e6edf3">int4</tspan></text>
+
+  <!-- generate panel -->
+  <rect x="24" y="272" width="852" height="164" rx="6" fill="#161b22" stroke="#30363d"/>
+  <text x="44" y="298" font-size="13" font-weight="600" fill="#8b949e"># generate</text>
+  <rect x="44" y="312" width="812" height="40" rx="6" fill="#0d1117" stroke="#30363d"/>
+  <text x="54" y="336" font-size="12" fill="#8b949e">Explain how the water cycle works...</text>
+  <rect x="820" y="362" width="36" height="26" rx="6" fill="#21262d" stroke="#30363d"/>
+  <text x="838" y="379" text-anchor="middle" font-size="11" fill="#e6edf3">run ▶</text>
+  <rect x="44" y="398" width="812" height="24" rx="4" fill="#0d1117" stroke="#30363d"/>
+  <text x="54" y="414" font-size="11" fill="#e6edf3">The water cycle moves water through evaporation, condensation<tspan fill="#58a6ff">▌</tspan></text>
+
+  <!-- models panel -->
+  <rect x="24" y="452" width="852" height="152" rx="6" fill="#161b22" stroke="#30363d"/>
+  <text x="44" y="478" font-size="13" font-weight="600" fill="#8b949e"># models</text>
+
+  <!-- model card 1 -->
+  <rect x="44" y="492" width="256" height="96" rx="6" fill="#0d1117" stroke="#30363d"/>
+  <text x="58" y="512" font-size="12" font-weight="600" fill="#e6edf3">TinyLlama 1.1B</text>
+  <text x="58" y="528" font-size="10" fill="#8b949e">Small, coherent, runs on a laptop</text>
+  <text x="58" y="546" font-size="10" fill="#8b949e">2.2GB</text>
+  <text x="230" y="546" font-size="10" fill="#d29922">★★★★☆</text>
+  <rect x="58" y="558" width="60" height="18" rx="4" fill="#0d1117" stroke="#30363d"/>
+  <text x="88" y="571" text-anchor="middle" font-size="9" fill="#e6edf3">int4</text>
+  <rect x="124" y="558" width="150" height="18" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="199" y="571" text-anchor="middle" font-size="9" fill="#e6edf3">use this model</text>
+
+  <!-- model card 2 -->
+  <rect x="316" y="492" width="256" height="96" rx="6" fill="#0d1117" stroke="#30363d"/>
+  <text x="330" y="512" font-size="12" font-weight="600" fill="#e6edf3">Phi-3 Mini (3.8B)</text>
+  <text x="330" y="528" font-size="10" fill="#8b949e">Best quality per GB in the catalogue</text>
+  <text x="330" y="546" font-size="10" fill="#8b949e">7.6GB</text>
+  <text x="502" y="546" font-size="10" fill="#d29922">★★★★★</text>
+  <rect x="330" y="558" width="60" height="18" rx="4" fill="#0d1117" stroke="#30363d"/>
+  <text x="360" y="571" text-anchor="middle" font-size="9" fill="#e6edf3">none</text>
+  <rect x="396" y="558" width="150" height="18" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="471" y="571" text-anchor="middle" font-size="9" fill="#e6edf3">use this model</text>
+
+  <!-- model card 3 -->
+  <rect x="588" y="492" width="256" height="96" rx="6" fill="#0d1117" stroke="#30363d"/>
+  <text x="602" y="512" font-size="12" font-weight="600" fill="#e6edf3">Mistral 7B Instruct</text>
+  <text x="602" y="528" font-size="10" fill="#8b949e">Strongest general-purpose model</text>
+  <text x="602" y="546" font-size="10" fill="#8b949e">14.5GB</text>
+  <text x="774" y="546" font-size="10" fill="#d29922">★★★★★</text>
+  <rect x="602" y="558" width="60" height="18" rx="4" fill="#0d1117" stroke="#30363d"/>
+  <text x="632" y="571" text-anchor="middle" font-size="9" fill="#e6edf3">int4</text>
+  <rect x="668" y="558" width="150" height="18" rx="4" fill="#21262d" stroke="#30363d"/>
+  <text x="743" y="571" text-anchor="middle" font-size="9" fill="#e6edf3">use this model</text>
+</svg>

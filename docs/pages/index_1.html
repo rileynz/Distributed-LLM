@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Distributed LLM — Research &amp; Development</title>
+<meta name="description" content="A distributed inference system splitting large language models across independent machines. Custom transformer, wire protocol, node mesh, and orchestration layer, built from first principles.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F8F9;
+    --paper-2:#EEF1F2;
+    --panel:#FFFFFF;
+    --ink:#12161A;
+    --ink-soft:#454E55;
+    --ink-faint:#78828A;
+    --line:#DEE3E6;
+    --line-strong:#B7C0C6;
+    --blue:#0F6B5C;
+    --blue-deep:#0B4A40;
+    --blue-pale:#E1EFEC;
+    --rust:#B8641B;
+    --rust-pale:#FBEEE2;
+    --green:#2F7D5B;
+    --navy:#14181A;
+    --navy-2:#1B2124;
+    --navy-line:rgba(190,205,200,0.18);
+    --mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:16.5px;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--blue); color:#fff;}
+  a{color:var(--blue);}
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 28px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--blue);
+    display:flex; align-items:center; gap:10px;
+    font-weight:600;
+  }
+  .eyebrow::before{content:"";width:8px;height:8px;border:1.5px solid var(--blue);transform:rotate(45deg);flex:none;}
+  .eyebrow.on-dark{color:#4FB89D;}
+  .eyebrow.on-dark::before{border-color:#4FB89D;}
+  h1,h2,h3{font-family:var(--mono); font-weight:600; color:var(--ink); margin:0; letter-spacing:-0.01em;}
+  p{margin:0;}
+  code, .mono{font-family:var(--mono);}
+
+  /* ---------- header ---------- */
+  header.site{
+    position:sticky; top:0; z-index:50;
+    background:var(--navy);
+    border-bottom:1px solid var(--navy-line);
+  }
+  .navbar{display:flex; align-items:center; justify-content:space-between; padding:16px 28px; max-width:var(--maxw); margin:0 auto;}
+  .brand{display:flex; align-items:center; gap:10px; font-family:var(--mono); font-weight:700; font-size:14px; color:#F2F4F3; text-decoration:none; letter-spacing:.01em;}
+  .brand .sub{color:#6B7976; font-weight:500;}
+  nav.links{display:flex; gap:26px; font-family:var(--mono); font-size:12.5px;}
+  nav.links a{color:#A6B4B0; text-decoration:none; transition:color .15s; letter-spacing:.02em;}
+  nav.links a:hover{color:#fff;}
+  .nav-cta{display:flex; align-items:center; gap:12px;}
+  .btn{
+    font-family:var(--mono); font-size:12.5px; font-weight:600;
+    padding:9px 16px; border-radius:2px; text-decoration:none;
+    display:inline-flex; align-items:center; gap:8px;
+    border:1px solid var(--blue-deep);
+    transition:transform .12s ease, box-shadow .12s ease;
+    letter-spacing:.02em;
+  }
+  .btn-primary{background:#E7F3EF; color:#0F1211; border-color:#E7F3EF;}
+  .btn-primary:hover{transform:translateY(-1px); box-shadow:0 3px 0 rgba(231,243,239,.4);}
+  .btn-ghost{background:transparent; color:#CFE0DB; border-color:rgba(207,224,219,.35);}
+  .btn-ghost:hover{border-color:#CFE0DB;}
+  .btn-light{background:var(--blue-deep); color:#fff;}
+  .btn-light:hover{transform:translateY(-1px); box-shadow:0 3px 0 var(--blue-deep);}
+  .btn-outline{background:transparent; color:var(--blue-deep); border-color:var(--line-strong);}
+  .btn-outline:hover{border-color:var(--blue-deep);}
+  @media (max-width:820px){ nav.links{display:none;} }
+
+  /* ---------- dark hero band ---------- */
+  .hero-band{
+    background:
+      radial-gradient(1100px 480px at 12% -15%, rgba(15,107,92,0.28), transparent 62%),
+      linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%);
+    color:#F2F4F3;
+    padding:68px 0 90px;
+    position:relative;
+    overflow:hidden;
+  }
+  .badge-row{display:flex; align-items:center; gap:10px; margin-bottom:22px;}
+  .badge-pill{
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:#A6B4B0; border:1px solid rgba(180,195,190,.35); padding:5px 11px; border-radius:20px;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  .badge-pill .live-dot{width:6px;height:6px;border-radius:50%;background:#4FD18C; box-shadow:0 0 0 3px rgba(79,209,140,.18);}
+  .badge-pill.link{text-decoration:none; transition:border-color .15s, color .15s; cursor:pointer;}
+  .badge-pill.link:hover{border-color:#4FB89D; color:#EAF3F0;}
+
+  .hero-grid{display:grid; grid-template-columns:1.05fr .95fr; gap:56px; align-items:center;}
+  @media (max-width:900px){ .hero-grid{grid-template-columns:1fr;} }
+  .hero-band h1{font-size:clamp(30px,4.2vw,45px); line-height:1.14; margin:6px 0 20px; color:#fff;}
+  .hero-band h1 .accent{color:#4FB89D;}
+  .hero-band p.lede{font-size:16.5px; color:#AEBAB5; max-width:52ch; margin-bottom:30px;}
+  .hero-band .actions{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:36px;}
+  .stat-row{display:flex; gap:30px; flex-wrap:wrap; border-top:1px solid var(--navy-line); padding-top:18px;}
+  .stat{font-family:var(--mono);}
+  .stat b{display:block; font-size:19px; color:#F2F4F3;}
+  .stat span{font-size:11px; color:#7C8B87; letter-spacing:.04em; text-transform:uppercase;}
+
+  /* diagram panel (used on dark) */
+  .sheet{
+    background:rgba(10,20,32,0.55);
+    border:1px solid var(--navy-line);
+    border-radius:4px;
+    position:relative;
+    backdrop-filter:blur(2px);
+  }
+  .sheet.on-light{background:var(--panel); border:1px solid var(--line-strong); box-shadow:0 1px 0 var(--line-strong), 0 12px 28px -18px rgba(14,58,102,0.35);}
+  .sheet .tab{
+    position:absolute; top:-11px; left:18px;
+    background:var(--blue-deep); color:#fff;
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
+    padding:3px 10px; border-radius:2px; text-transform:uppercase; font-weight:600;
+  }
+  .sheet.on-light .tab{background:var(--blue-deep);}
+  .sheet-body{padding:34px 22px 20px;}
+  .corner-tick{position:absolute; width:9px; height:9px; border:1.5px solid var(--navy-line);}
+  .sheet.on-light .corner-tick{border-color:var(--line-strong);}
+  .corner-tick.tl{top:-1px; left:-1px; border-right:none; border-bottom:none;}
+  .corner-tick.br{bottom:-1px; right:-1px; border-left:none; border-top:none;}
+
+  /* ---------- sections ---------- */
+  section{padding:64px 0;}
+  .section-head{max-width:640px; margin-bottom:38px;}
+  .section-head h2{font-size:26px; margin:14px 0 12px;}
+  .section-head p{color:var(--ink-soft); font-size:15.5px;}
+  section.alt{background:var(--paper-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line);}
+
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:44px;}
+  @media (max-width:820px){ .two-col{grid-template-columns:1fr;} }
+
+  .callout{
+    border-left:3px solid var(--rust);
+    background:var(--rust-pale);
+    padding:14px 18px;
+    font-size:14px;
+    color:#7a3d16;
+    border-radius:0 3px 3px 0;
+    font-family:var(--mono);
+  }
+  .callout b{color:#7a3d16;}
+
+  /* how it works steps */
+  .steps{counter-reset:step; display:grid; gap:0; margin-top:8px;}
+  .step{display:grid; grid-template-columns:64px 1fr; gap:18px; padding:22px 0; border-top:1px solid var(--line);}
+  .step:last-child{border-bottom:1px solid var(--line);}
+  .step .num{font-family:var(--mono); font-size:26px; font-weight:700; color:var(--line-strong);}
+  .step h3{font-size:16px; margin-bottom:6px;}
+  .step p{color:var(--ink-soft); font-size:14.5px;}
+  .step code.inline{background:var(--blue-pale); color:var(--blue-deep); padding:1px 6px; border-radius:3px; font-size:13px;}
+
+  /* cards */
+  .card-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  @media (max-width:900px){ .card-grid{grid-template-columns:1fr;} }
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:22px;
+    position:relative;
+  }
+  .card .tag{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--blue); font-weight:600; margin-bottom:10px; display:block;
+  }
+  .card h3{font-size:16.5px; margin-bottom:10px;}
+  .card p{font-size:14px; color:var(--ink-soft);}
+  .card .metric{
+    margin-top:16px; padding-top:14px; border-top:1px dashed var(--line);
+    font-family:var(--mono); font-size:13px; color:var(--ink);
+  }
+  .card .metric b{color:var(--rust);}
+
+  /* spec sheet (dark, xfra-style hardware spec block) */
+  .spec-dark{
+    background:var(--navy); color:#F2F4F3; border-radius:6px; padding:38px 34px;
+    border:1px solid var(--navy-line);
+    position:relative;
+  }
+  .spec-dark .spec-title{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#7C8B87; margin-bottom:26px;}
+  .spec-cols{display:grid; grid-template-columns:repeat(3,1fr); gap:30px;}
+  @media (max-width:820px){ .spec-cols{grid-template-columns:1fr;} }
+  .spec-cols h4{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#4FB89D; margin-bottom:12px;}
+  .spec-cols ul{list-style:none; margin:0; padding:0; display:grid; gap:8px;}
+  .spec-cols li{font-size:13.5px; color:#C6D2CE; font-family:var(--mono); padding-left:0;}
+
+  /* code block */
+  .codebox{
+    background:var(--blue-deep); color:#E7F3EF; border-radius:5px; padding:20px 22px;
+    font-family:var(--mono); font-size:13.5px; line-height:1.75; overflow-x:auto;
+    position:relative;
+  }
+  .codebox .comment{color:#8FB4DE;}
+  .codebox .prompt{color:#7BD1A8;}
+  .copybtn{
+    position:absolute; top:12px; right:12px; background:rgba(255,255,255,0.08); color:#E7F3EF;
+    border:1px solid rgba(255,255,255,0.18); font-family:var(--mono); font-size:11px;
+    padding:5px 10px; border-radius:3px; cursor:pointer;
+  }
+  .copybtn:hover{background:rgba(255,255,255,0.16);}
+
+  /* table */
+  table.spec{width:100%; border-collapse:collapse; font-size:14px;}
+  table.spec th, table.spec td{text-align:left; padding:11px 14px; border-bottom:1px solid var(--line);}
+  table.spec th{font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-weight:600;}
+  table.spec td.mono-cell{font-family:var(--mono); font-size:13px; color:var(--blue-deep);}
+  table.spec tr:last-child td{border-bottom:none;}
+
+  /* limitations */
+  .limit-list{display:grid; gap:16px;}
+  .limit{display:grid; grid-template-columns:22px 1fr; gap:12px; padding:16px 0; border-top:1px solid var(--line);}
+  .limit:last-child{padding-bottom:0;}
+  .limit .dot{width:9px;height:9px;border-radius:50%;background:var(--rust);margin-top:6px;}
+  .limit h4{font-family:var(--mono); font-size:14.5px; margin:0 0 5px; color:var(--ink);}
+  .limit p{font-size:14px; color:var(--ink-soft);}
+
+  /* roadmap */
+  .roadmap{display:grid; grid-template-columns:repeat(2,1fr); gap:14px;}
+  @media (max-width:820px){ .roadmap{grid-template-columns:1fr;} }
+  .rmap-item{border:1px dashed var(--line-strong); border-radius:4px; padding:14px 16px; font-size:14px; color:var(--ink-soft); display:flex; gap:10px; align-items:flex-start;}
+  .rmap-item .chk{font-family:var(--mono); color:var(--blue); flex:none;}
+
+  /* file guide */
+  .filetable{width:100%; border-collapse:collapse; font-size:13.5px;}
+  .filetable td{padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top;}
+  .filetable td.f{font-family:var(--mono); color:var(--blue-deep); white-space:nowrap;}
+  .filetable td.d{color:var(--ink-soft);}
+
+  /* connect / access form */
+  .connect-band{background:var(--navy); color:#F2F4F3; border-radius:6px; padding:44px 40px; border:1px solid var(--navy-line);}
+  .connect-grid{display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:start;}
+  @media (max-width:820px){ .connect-grid{grid-template-columns:1fr;} }
+  .connect-band h2{color:#fff; font-size:24px; margin:12px 0 12px;}
+  .connect-band p{color:#AEBAB5; font-size:14.5px; max-width:44ch;}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:#4FB89D; margin-bottom:7px;}
+  .field select, .field input{
+    width:100%; background:rgba(255,255,255,0.04); border:1px solid var(--navy-line); color:#F2F4F3;
+    padding:11px 12px; border-radius:3px; font-family:var(--sans); font-size:14px; outline:none;
+  }
+  .field select:focus, .field input:focus{border-color:#4FB89D;}
+  .connect-note{font-family:var(--mono); font-size:11.5px; color:#6B7976; margin-top:6px;}
+
+  /* footer */
+  footer{padding:56px 0 40px; border-top:1px solid var(--line); background:var(--paper);}
+  .footer-grid{display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:36px;}
+  @media (max-width:820px){ .footer-grid{grid-template-columns:1fr; gap:28px;} }
+  footer h4{font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); margin-bottom:14px;}
+  footer ul{list-style:none; margin:0; padding:0; display:grid; gap:9px;}
+  footer a{color:var(--ink-soft); text-decoration:none; font-size:14px;}
+  footer a:hover{color:var(--blue);}
+  .foot-bottom{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-family:var(--mono); font-size:12px; color:var(--ink-faint);}
+
+  .reveal{opacity:0; transform:translateY(14px); transition:opacity .6s ease, transform .6s ease;}
+  .reveal.in{opacity:1; transform:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto;}
+    .reveal{opacity:1; transform:none; transition:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="navbar">
+    <a href="#top" class="brand">
+      DISTRIBUTED&nbsp;LLM <span class="sub">/ R&amp;D</span>
+    </a>
+    <nav class="links">
+      <a href="#approach">Approach</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#node">Node spec</a>
+      <a href="#constraints">Constraints</a>
+      <a href="#connect">Connect</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="whitepaper.pdf" target="_blank" rel="noopener">Whitepaper</a>
+      <a class="btn btn-ghost" href="https://github.com/rileynz/Distributed-LLM" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        GitHub
+      </a>
+      <a class="btn btn-primary" href="#connect">Request access</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ================= HERO ================= -->
+  <div class="hero-band">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="badge-row">
+          <span class="badge-pill"><span class="live-dot"></span>Active development</span>
+          <span class="badge-pill">Solo R&amp;D effort</span>
+          <a class="badge-pill link" href="whitepaper.pdf" target="_blank" rel="noopener">Read the whitepaper &rarr;</a>
+        </div>
+        <div class="eyebrow on-dark">Introducing Distributed LLM</div>
+        <h1>Language models, <span class="accent">disassembled</span><br>and rebuilt across a mesh of machines.</h1>
+        <p class="lede">A distributed inference engine that splits a transformer's layers across independent nodes and runs a single coherent forward pass across all of them — no one machine ever holds the whole model. Custom protocol. Custom runtime. No inference framework underneath it.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="#connect">Request access</a>
+          <a class="btn btn-ghost" href="#approach">Read the technical brief &rarr;</a>
+          <a class="btn btn-light" href="https://github.com/rileynz/Distributed-LLM" target="_blank" rel="noopener">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+            View on GitHub
+          </a>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><b>0</b><span>frameworks in the wire protocol</span></div>
+          <div class="stat"><b>2+</b><span>independent nodes, any network</span></div>
+          <div class="stat"><b>~13%</b><span>of checkpoint weights read per thin node</span></div>
+          <div class="stat"><b>int4</b><span>quantization on the loader</span></div>
+        </div>
+      </div>
+
+      <div class="sheet reveal" id="hero-diagram">
+        <span class="corner-tick tl"></span><span class="corner-tick br"></span>
+        <span class="tab">live pipeline &middot; sheet 01</span>
+        <div class="sheet-body">
+          <svg viewBox="0 0 480 300" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Mono',monospace">
+            <rect x="180" y="14" width="120" height="42" rx="4" fill="rgba(127,184,238,0.1)" stroke="#4FB89D" stroke-width="1.2"/>
+            <text x="240" y="31" text-anchor="middle" font-size="10.5" font-weight="600" fill="#F2F4F3">REGISTRY</text>
+            <text x="240" y="45" text-anchor="middle" font-size="8.5" fill="#8B9794">node phonebook</text>
+
+            <path d="M110 100 L215 56" stroke="#32383B" stroke-width="1" stroke-dasharray="3 3" fill="none"/>
+            <path d="M370 100 L265 56" stroke="#32383B" stroke-width="1" stroke-dasharray="3 3" fill="none"/>
+            <text x="150" y="82" font-size="8" fill="#7C8B87">chain lookup</text>
+
+            <rect x="30" y="100" width="110" height="52" rx="4" fill="rgba(255,255,255,0.02)" stroke="#32383B" stroke-width="1.2"/>
+            <text x="85" y="122" text-anchor="middle" font-size="10.5" font-weight="600" fill="#F2F4F3">COORDINATOR</text>
+            <text x="85" y="137" text-anchor="middle" font-size="8.5" fill="#8B9794">tokenizes prompt</text>
+
+            <rect x="185" y="100" width="110" height="52" rx="4" fill="rgba(255,255,255,0.02)" stroke="#4FB89D" stroke-width="1.6"/>
+            <text x="240" y="120" text-anchor="middle" font-size="10.5" font-weight="600" fill="#F2F4F3">NODE A</text>
+            <text x="240" y="134" text-anchor="middle" font-size="8.5" fill="#8B9794">layers 0&ndash;7</text>
+            <text x="240" y="146" text-anchor="middle" font-size="8.5" fill="#4FB89D">3.4ms/tok</text>
+
+            <rect x="340" y="100" width="110" height="52" rx="4" fill="rgba(255,255,255,0.02)" stroke="#32383B" stroke-width="1.2"/>
+            <text x="395" y="120" text-anchor="middle" font-size="10.5" font-weight="600" fill="#F2F4F3">NODE B</text>
+            <text x="395" y="134" text-anchor="middle" font-size="8.5" fill="#8B9794">layers 8&ndash;15</text>
+            <text x="395" y="146" text-anchor="middle" font-size="8.5" fill="#5F7A94">idle</text>
+
+            <path d="M140 126 L185 126" stroke="#E8A67A" stroke-width="1.4" fill="none"/>
+            <path d="M295 126 L340 126" stroke="#32383B" stroke-width="1.2" fill="none" marker-end="url(#arrow2)"/>
+            <defs>
+              <marker id="arrow2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#32383B" stroke-width="1.4"/>
+              </marker>
+            </defs>
+            <circle r="3.2" fill="#E8A67A">
+              <animateMotion dur="2.6s" repeatCount="indefinite" path="M140 126 L450 126"/>
+            </circle>
+
+            <path d="M395 152 L395 200 L85 200 L85 152" stroke="#32383B" stroke-width="1" stroke-dasharray="2 3" fill="none" marker-end="url(#arrow2)"/>
+            <text x="240" y="214" text-anchor="middle" font-size="8" fill="#7C8B87">logits stream back &middot; token by token</text>
+
+            <rect x="30" y="236" width="420" height="46" rx="4" fill="rgba(232,166,122,0.08)" stroke="#8A5A3A" stroke-width="1"/>
+            <text x="46" y="255" font-size="9" fill="#E8A67A" font-weight="600">AFTER PREFILL:</text>
+            <text x="46" y="270" font-size="9" fill="#D8B599">only the newest token's hidden state crosses the wire &mdash; each node keeps its own KV cache</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= THE CONSTRAINT ================= -->
+  <section id="constraint">
+    <div class="wrap reveal">
+      <div class="section-head">
+        <div class="eyebrow">The constraint</div>
+        <h2>Large models need large, single machines. Most compute isn't that.</h2>
+        <p>Running a capable model has meant renting a machine big enough to hold every one of its layers in memory at once — even though most available hardware, across most homes, labs, and desks, only ever holds a slice of that.</p>
+      </div>
+      <div class="two-col">
+        <div>
+          <p style="color:var(--ink-soft);font-size:15px;">The gap isn't compute in the abstract — it's compute in one place. A cluster of ordinary machines, none individually capable of the full model, can still run it together if the model itself can be taken apart along its layers and reassembled across a network.</p>
+        </div>
+        <div>
+          <p style="color:var(--ink-soft);font-size:15px;">That's the shape of the problem this project takes on: a transformer split cleanly enough that any machine can own a slice of it, a protocol precise enough to move state between machines without losing correctness, and a mesh that stays coherent as machines join, leave, or swap.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= APPROACH ================= -->
+  <section class="alt" id="approach">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">The approach</div>
+        <h2>Four components, one coherent chain</h2>
+        <p>A registry, a mesh of nodes, a coordinator, and a hot-reload path that keeps every machine in sync when the model changes.</p>
+      </div>
+      <div class="steps reveal">
+        <div class="step">
+          <div class="num">01</div>
+          <div>
+            <h3>The registry — the network's phonebook</h3>
+            <p>Nodes announce on startup, either with a fixed layer range or as an unassigned node waiting to be given one. The coordinator resolves the current live chain before every request, so the mesh can reshape itself at any time.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">02</div>
+          <div>
+            <h3>Each node computes only its slice</h3>
+            <p>A node reads just its assigned layers off disk rather than the full checkpoint, receives a tensor from the previous node, runs its layers, and forwards the result on.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">03</div>
+          <div>
+            <h3>The coordinator drives the request</h3>
+            <p>It tokenizes the prompt, sends it into the chain, and streams logits back as they arrive. The prompt crosses the wire once — after that, only the newest token's hidden state travels, since every node holds its own local cache.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">04</div>
+          <div>
+            <h3>Hot reload reaches the whole mesh</h3>
+            <p>Every node polls the registry for the active model and its own assignment, so a model switch reaches every machine within seconds — not just the one that initiated it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CAPABILITIES ================= -->
+  <section id="capabilities">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Capabilities</div>
+        <h2>Engineered for hardware that shouldn't be able to run this</h2>
+        <p>Three subsystems that exist specifically because "spread a large model across weak devices" falls apart without them.</p>
+      </div>
+      <div class="card-grid reveal">
+        <div class="card">
+          <span class="tag">Memory</span>
+          <h3>Lazy layer loading</h3>
+          <p>Nodes read only their own layers directly off disk instead of loading a full checkpoint and discarding the rest. Verified tensor-by-tensor, not by inspection.</p>
+          <div class="metric">16-layer / 730MB model, 2-layer node: <b>~94MB</b> actually read.</div>
+        </div>
+        <div class="card">
+          <span class="tag">Bandwidth</span>
+          <h3>Distributed KV cache</h3>
+          <p>Every node holds a local cache keyed to the request. Only the newest token's hidden state crosses the wire after prefill — caches themselves never leave the process.</p>
+          <div class="metric">Toggle for comparison: <b>--no-cache</b></div>
+        </div>
+        <div class="card">
+          <span class="tag">Compute</span>
+          <h3>Quantization</h3>
+          <p>Catalogue models load in int8 or int4 via bitsandbytes in place of full precision. Requires a CUDA node on that layer range; others fall back automatically.</p>
+          <div class="metric">Roughly <b>2&times;&ndash;4&times;</b> less RAM per node.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= NODE SPEC (xfra-style hardware sheet) ================= -->
+  <section class="alt" id="node">
+    <div class="wrap reveal">
+      <div class="section-head">
+        <div class="eyebrow">Node &amp; mesh spec</div>
+        <h2>What a node is, what the mesh does</h2>
+      </div>
+      <div class="spec-dark">
+        <div class="spec-title">SPECIFICATION — v0 (subject to change)</div>
+        <div class="spec-cols">
+          <div>
+            <h4>Node</h4>
+            <ul>
+              <li>Any machine on the network</li>
+              <li>Owns a contiguous layer range</li>
+              <li>Reads only its own layers from disk</li>
+              <li>Serves over a length-prefixed TCP protocol</li>
+              <li>int8 / int4 on CUDA, fp fallback elsewhere</li>
+            </ul>
+          </div>
+          <div>
+            <h4>Mesh</h4>
+            <ul>
+              <li>Central registry + heartbeat, 5s interval</li>
+              <li>Auto layer-split across confirmed nodes</li>
+              <li>Hot model switch, network-wide</li>
+              <li>LAN-native; Tailscale for cross-network</li>
+              <li>Live pipeline view via web dashboard</li>
+            </ul>
+          </div>
+          <div>
+            <h4>Model support</h4>
+            <ul>
+              <li>GPT-2 family, OPT, TinyLlama</li>
+              <li>Phi-3 Mini, Mistral 7B Instruct</li>
+              <li>Sharded, per-node shard fetch</li>
+              <li>Safetensors required for lazy load</li>
+              <li>Recommended entry: TinyLlama 1.1B</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section id="dashboard">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="eyebrow">Observability</div>
+        <h2>A live view into the mesh</h2>
+        <p>The pipeline as tokens move through it, and model control without a terminal. Reads and writes only what each node already exposes on its management port.</p>
+      </div>
+      <div class="sheet on-light reveal">
+        <span class="corner-tick tl"></span><span class="corner-tick br"></span>
+        <span class="tab">preview mockup &middot; sheet 02</span>
+        <div class="sheet-body" style="padding-top:34px;">
+          <svg viewBox="0 0 860 300" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="'IBM Plex Mono',monospace">
+            <rect x="0" y="0" width="860" height="300" fill="#fff"/>
+            <line x1="0" y1="40" x2="860" y2="40" stroke="#DEE3E6"/>
+            <text x="16" y="26" font-size="12" font-weight="600" fill="#12161A">~/distributed-llm</text>
+            <rect x="740" y="12" width="104" height="20" rx="10" fill="#fff" stroke="#2F7D5B"/>
+            <text x="792" y="26" text-anchor="middle" font-size="9" fill="#2F7D5B">&#9679; chain ready</text>
+
+            <rect x="16" y="56" width="828" height="120" rx="4" fill="#F7F8F9" stroke="#DEE3E6"/>
+            <text x="30" y="76" font-size="10" font-weight="600" fill="#454E55"># pipeline</text>
+            <rect x="30" y="92" width="120" height="52" rx="4" fill="#fff" stroke="#DEE3E6"/>
+            <text x="40" y="112" font-size="10" font-weight="600" fill="#12161A">&#9679; you</text>
+            <text x="40" y="128" font-size="8.5" fill="#78828A">browser</text>
+            <text x="158" y="122" font-size="12" fill="#78828A">&rarr;</text>
+            <rect x="176" y="92" width="140" height="52" rx="4" fill="#fff" stroke="#0F6B5C" stroke-width="1.6"/>
+            <text x="188" y="112" font-size="10" font-weight="600" fill="#12161A">&#9679; nodeA</text>
+            <text x="188" y="128" font-size="8.5" fill="#454E55">layers 0-7</text>
+            <text x="188" y="140" font-size="8.5" fill="#0F6B5C">3.4ms</text>
+            <text x="324" y="122" font-size="12" fill="#78828A">&rarr;</text>
+            <rect x="342" y="92" width="140" height="52" rx="4" fill="#fff" stroke="#DEE3E6"/>
+            <text x="354" y="112" font-size="10" font-weight="600" fill="#12161A">&#9679; nodeB</text>
+            <text x="354" y="128" font-size="8.5" fill="#78828A">layers 8-15</text>
+            <text x="490" y="122" font-size="12" fill="#78828A">&rarr;</text>
+            <rect x="508" y="92" width="140" height="52" rx="4" fill="#fff" stroke="#DEE3E6"/>
+            <text x="520" y="112" font-size="10" font-weight="600" fill="#12161A">&#9679; nodeC</text>
+            <text x="520" y="128" font-size="8.5" fill="#78828A">layers 16-23</text>
+            <text x="700" y="112" font-size="9" fill="#454E55">tok/s: 8.2</text>
+            <text x="700" y="128" font-size="9" fill="#454E55">requests: 214</text>
+
+            <rect x="16" y="188" width="404" height="96" rx="4" fill="#F7F8F9" stroke="#DEE3E6"/>
+            <text x="30" y="206" font-size="10" font-weight="600" fill="#454E55"># generate</text>
+            <rect x="30" y="216" width="376" height="26" rx="3" fill="#fff" stroke="#DEE3E6"/>
+            <text x="40" y="233" font-size="9.5" fill="#78828A">the distributed system slowly&hellip;</text>
+            <text x="30" y="266" font-size="9" fill="#12161A">learned to speak in one voice across</text>
+            <text x="30" y="278" font-size="9" fill="#12161A">three machines that had never met.</text>
+
+            <rect x="436" y="188" width="408" height="96" rx="4" fill="#F7F8F9" stroke="#DEE3E6"/>
+            <text x="450" y="206" font-size="10" font-weight="600" fill="#454E55"># models</text>
+            <rect x="450" y="216" width="180" height="52" rx="3" fill="#fff" stroke="#DEE3E6"/>
+            <text x="460" y="232" font-size="9.5" font-weight="600" fill="#12161A">TinyLlama 1.1B</text>
+            <text x="460" y="245" font-size="8.5" fill="#78828A">int4 &middot; fits network</text>
+            <rect x="460" y="252" width="90" height="14" rx="3" fill="#0F6B5C"/>
+            <text x="505" y="262" text-anchor="middle" font-size="7.5" fill="#fff">USE THIS MODEL</text>
+            <rect x="644" y="216" width="180" height="52" rx="3" fill="#fff" stroke="#DEE3E6"/>
+            <text x="654" y="232" font-size="9.5" font-weight="600" fill="#12161A">Mistral 7B Instruct</text>
+            <text x="654" y="245" font-size="8.5" fill="#78828A">needs 1 more node</text>
+          </svg>
+        </div>
+      </div>
+      <p style="font-size:12.5px;color:var(--ink-faint);margin-top:10px;font-family:var(--mono);">Layout mockup, built to match the running dashboard's CSS exactly &mdash; swapped for a live capture once deployed on your mesh.</p>
+    </div>
+  </section>
+
+  <!-- ================= CONSTRAINTS (formerly "honest limitations") ================= -->
+  <section class="alt" id="constraints">
+    <div class="wrap reveal">
+      <div class="section-head">
+        <div class="eyebrow">Current constraints</div>
+        <h2>What this doesn't do yet</h2>
+        <p>Disclosed plainly, the way any engineering brief should read.</p>
+      </div>
+      <div class="limit-list">
+        <div class="limit">
+          <div class="dot"></div>
+          <div>
+            <h4>Centralized registry</h4>
+            <p>A single point of coordination. If it drops, new requests can't be routed and switches can't propagate — in-flight requests still complete. A peer-to-peer topology would remove this but is a materially larger build.</p>
+          </div>
+        </div>
+        <div class="limit">
+          <div class="dot"></div>
+          <div>
+            <h4>No load balancing</h4>
+            <p>Requests run through one linear chain. Concurrent requests queue rather than route across spare capacity.</p>
+          </div>
+        </div>
+        <div class="limit">
+          <div class="dot"></div>
+          <div>
+            <h4>Node failure isn't mesh failure — but it isn't retried either</h4>
+            <p>A dropped node is detected in seconds and the request returns what it generated so far. It's not auto-retried: with KV caching in play, a silent resend risks double-applying a token.</p>
+          </div>
+        </div>
+        <div class="limit">
+          <div class="dot"></div>
+          <div>
+            <h4>Lazy loading and quantization are not yet composable</h4>
+            <p>Quantized loads use the full-load-then-slice path — packing weights safely from hand-picked tensors is separate work.</p>
+          </div>
+        </div>
+        <div class="limit">
+          <div class="dot"></div>
+          <div>
+            <h4>Tensor transport uses pickle</h4>
+            <p>Appropriate for a trusted network. Node ports are not designed to face the open internet.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ROADMAP ================= -->
+  <section id="roadmap">
+    <div class="wrap reveal">
+      <div class="section-head">
+        <div class="eyebrow">Roadmap</div>
+        <h2>Open threads</h2>
+      </div>
+      <div class="roadmap">
+        <div class="rmap-item"><span class="chk">&rarr;</span>Partial downloads for single-file checkpoints</div>
+        <div class="rmap-item"><span class="chk">&rarr;</span>Prompt-prefix cache reuse across requests</div>
+        <div class="rmap-item"><span class="chk">&rarr;</span>Continuous batching in place of queuing</div>
+        <div class="rmap-item"><span class="chk">&rarr;</span>Automatic rerouting around a dead node</div>
+        <div class="rmap-item"><span class="chk">&rarr;</span>CPU-native quantization path</div>
+        <div class="rmap-item"><span class="chk">&rarr;</span>Streaming HTTP API for external clients</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= TECHNICAL BRIEF / QUICK START ================= -->
+  <section class="alt" id="start">
+    <div class="wrap two-col reveal">
+      <div>
+        <div class="eyebrow">Technical brief</div>
+        <h2 style="font-size:24px;margin-top:14px;">Bring up a mesh in three commands</h2>
+        <p style="color:var(--ink-soft);font-size:15px;margin-top:14px;">A terminal launcher shows live status — registry health, connected nodes, chain integrity — and walks through the rest. Startup order: registry, then nodes, then client, each in its own terminal.</p>
+        <table class="filetable" style="margin-top:22px;">
+          <tr><td class="f">run.py</td><td class="d">Terminal launcher, live status view</td></tr>
+          <tr><td class="f">registry/server.py</td><td class="d">Node phonebook</td></tr>
+          <tr><td class="f">node/server.py</td><td class="d">Loads a model slice, serves inference</td></tr>
+          <tr><td class="f">coordinator/client.py</td><td class="d">Sends prompts, streams output</td></tr>
+          <tr><td class="f">dashboard/server.py</td><td class="d">Web dashboard, port 7000</td></tr>
+        </table>
+      </div>
+      <div class="codebox">
+        <button class="copybtn" onclick="copyCode(this)">copy</button>
+<span class="comment"># install once</span>
+pip install -r requirements.txt
+python create_checkpoint.py
+
+<span class="comment"># interactive launcher &mdash; guides you through the rest</span>
+python run.py
+
+<span class="comment"># or the pieces separately, one per terminal:</span>
+python registry/server.py
+python node/server.py --pool
+python coordinator/client.py <span class="prompt">"tell me a story"</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CONNECT ================= -->
+  <section id="connect">
+    <div class="wrap reveal">
+      <div class="connect-band">
+        <div class="connect-grid">
+          <div>
+            <div class="eyebrow on-dark">Connect</div>
+            <h2>Get in touch</h2>
+            <p>Building something similar, evaluating this for a role, or want the full source and technical documentation — leave a note and a way to reach you.</p>
+          </div>
+          <form onsubmit="return handleConnect(event)">
+            <div class="field">
+              <label for="c-category">I am a&hellip;</label>
+              <select id="c-category">
+                <option>Fellow builder / contributor</option>
+                <option>Recruiter / hiring manager</option>
+                <option>Researcher / academic</option>
+                <option>Just curious</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="c-email">Email</label>
+              <input id="c-email" type="email" placeholder="you@domain.com" required>
+            </div>
+            <div class="field">
+              <label for="c-note">Note (optional)</label>
+              <input id="c-note" type="text" placeholder="What you're looking for">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:6px;">Submit</button>
+            <p class="connect-note" id="connect-status">This is a static page &mdash; wire this form to an inbox, form service, or mailto link before publishing.</p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a href="#top" class="brand" style="margin-bottom:14px;display:inline-flex;color:var(--ink);">
+          DISTRIBUTED LLM
+        </a>
+        <p style="color:var(--ink-soft);font-size:14px;max-width:36ch;">A distributed inference engine built from first principles: custom transformer, wire protocol, node mesh, orchestration layer, and observability dashboard.</p>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul>
+          <li><a href="#approach">Approach</a></li>
+          <li><a href="#capabilities">Capabilities</a></li>
+          <li><a href="#constraints">Constraints</a></li>
+          <li><a href="#start">Technical brief</a></li>
+          <li><a href="whitepaper.pdf" target="_blank" rel="noopener">Whitepaper (PDF)</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Links</h4>
+        <ul>
+          <li><a href="https://github.com/rileynz/Distributed-LLM" target="_blank" rel="noopener">Source on GitHub</a></li>
+          <li><a href="https://github.com/rileynz/Distributed-LLM/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing guide</a></li>
+          <li><a href="https://github.com/bigscience-workshop/petals" target="_blank" rel="noopener">Petals (inspiration)</a></li>
+          <li><a href="https://tailscale.com" target="_blank" rel="noopener">Tailscale</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>&copy; 2026 Distributed LLM &middot; MIT Licensed &middot; source available</span>
+      <span>status: active development</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:0.12});
+  els.forEach(el=>io.observe(el));
+
+  function copyCode(btn){
+    const box = btn.parentElement;
+    const text = box.innerText.replace('copy','').trim();
+    navigator.clipboard.writeText(text).then(()=>{
+      const old = btn.textContent;
+      btn.textContent = 'copied';
+      setTimeout(()=>btn.textContent = old, 1400);
+    });
+  }
+
+  function handleConnect(e){
+    e.preventDefault();
+    const status = document.getElementById('connect-status');
+    status.textContent = 'Form captured locally only — connect it to a real endpoint before this goes live.';
+    status.style.color = '#4FB89D';
+    return false;
+  }
+</script>
+
+</body>
+</html>

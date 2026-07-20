@@ -1,0 +1,10 @@
+torch>=2.0.0
+flask>=3.0.0
+requests>=2.31.0
+werkzeug>=3.0.0
+transformers>=4.40.0
+psutil>=5.9.0
+huggingface_hub>=0.20.0
+bitsandbytes>=0.43.0
+accelerate>=0.30.0
+safetensors>=0.4.0

@@ -1,0 +1,21 @@
+This is a small sample text file for training the tiny distributed
+language model. It is just placeholder text written for this project
+so that train.py has something to learn from right out of the box.
+
+The model is very small, so it will not learn deep meaning from a tiny
+file like this one. What it can learn from even a short, repetitive
+text is the basic shape of language: which letters tend to follow
+which other letters, where spaces and punctuation usually go, and
+common short words like "the", "and", "is", and "a".
+
+For a model that produces genuinely interesting text, replace this
+file with a much larger piece of text of your own choosing. Good
+options include any public domain book from Project Gutenberg
+(gutenberg.org), your own writing, transcripts of things you like, or
+any other plain text file. Aim for at least a few hundred kilobytes of
+text for noticeably better results than this short sample gives.
+
+The quick brown fox jumps over the lazy dog. The quick brown fox jumps
+over the lazy dog again and again, because repetition is exactly the
+kind of pattern that a tiny character-level model can actually learn
+to predict, even with very little training data and very little time.

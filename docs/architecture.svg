@@ -1,0 +1,52 @@
+<svg width="680" height="330" viewBox="0 0 680 330" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <title>distributed-llm architecture</title>
+  <desc>A registry tracks live nodes. A coordinator queries the registry for the current chain, sends a prompt to the first node, and hidden states pass node to node before streamed tokens return to the coordinator.</desc>
+
+  <rect width="680" height="330" fill="#ffffff"/>
+
+  <!-- Registry -->
+  <rect x="260" y="40" width="160" height="56" rx="10" fill="#f6f8fa" stroke="#57606a" stroke-width="1.2"/>
+  <text x="340" y="60" text-anchor="middle" font-size="13" font-weight="600" fill="#24292f">Registry</text>
+  <text x="340" y="78" text-anchor="middle" font-size="11" fill="#57606a">node phonebook</text>
+
+  <!-- chain lookup / announce lines -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="#57606a" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <path d="M115 160 L290 96" fill="none" stroke="#8c959f" stroke-width="1" marker-end="url(#arrow)"/>
+  <text x="150" y="128" text-anchor="middle" font-size="10" fill="#57606a">chain lookup</text>
+
+  <path d="M415 160 L390 96" fill="none" stroke="#8c959f" stroke-width="1" marker-end="url(#arrow)"/>
+  <text x="452" y="128" text-anchor="middle" font-size="10" fill="#57606a">announce</text>
+
+  <!-- Coordinator -->
+  <rect x="50" y="160" width="130" height="56" rx="10" fill="#fff1e5" stroke="#bc4c00" stroke-width="1.2"/>
+  <text x="115" y="180" text-anchor="middle" font-size="13" font-weight="600" fill="#7a3900">Coordinator</text>
+  <text x="115" y="198" text-anchor="middle" font-size="11" fill="#7a3900">sends prompts</text>
+
+  <!-- Node 1 -->
+  <rect x="200" y="160" width="130" height="56" rx="10" fill="#e6f4ea" stroke="#1a7f37" stroke-width="1.2"/>
+  <text x="265" y="180" text-anchor="middle" font-size="13" font-weight="600" fill="#116329">Node 1</text>
+  <text x="265" y="198" text-anchor="middle" font-size="11" fill="#116329">layers 1-8</text>
+
+  <!-- Node 2 -->
+  <rect x="350" y="160" width="130" height="56" rx="10" fill="#e6f4ea" stroke="#1a7f37" stroke-width="1.2"/>
+  <text x="415" y="180" text-anchor="middle" font-size="13" font-weight="600" fill="#116329">Node 2</text>
+  <text x="415" y="198" text-anchor="middle" font-size="11" fill="#116329">layers 9-16</text>
+
+  <!-- Node 3 -->
+  <rect x="500" y="160" width="130" height="56" rx="10" fill="#e6f4ea" stroke="#1a7f37" stroke-width="1.2"/>
+  <text x="565" y="180" text-anchor="middle" font-size="13" font-weight="600" fill="#116329">Node 3</text>
+  <text x="565" y="198" text-anchor="middle" font-size="11" fill="#116329">layers 17-24</text>
+
+  <!-- forward chain arrows -->
+  <line x1="180" y1="188" x2="200" y2="188" stroke="#57606a" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="330" y1="188" x2="350" y2="188" stroke="#57606a" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="480" y1="188" x2="500" y2="188" stroke="#57606a" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- return path -->
+  <path d="M565 216 L565 290 L115 290 L115 216" fill="none" stroke="#8c959f" stroke-width="1" marker-end="url(#arrow)"/>
+  <text x="340" y="278" text-anchor="middle" font-size="10" fill="#57606a">only the newest token travels back after the first step (KV cache)</text>
+</svg>
