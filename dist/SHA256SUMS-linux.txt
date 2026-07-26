@@ -1,0 +1,2 @@
+1d724006794bba9b73643341ceea32389ccf2c2756607b85e2bd6b9866e8d516  distributed-llm_0.3.0_all.deb
+de2d0c9ef8bfa711c995aa284bd90f98f1c2bb42a1b1ee496ff0326ce4db5e02  Distributed-LLM-Universal-0.3.0-Linux.run

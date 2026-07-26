@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Distributed LLM
+Comment=Create or join a llama.cpp inference cluster
+Exec=distributed-llm
+Icon=distributed-llm
+Terminal=true
+Categories=Development;Utility;
+Keywords=AI;LLM;GGUF;llama.cpp;

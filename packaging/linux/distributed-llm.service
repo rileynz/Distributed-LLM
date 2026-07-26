@@ -1,0 +1,30 @@
+[Unit]
+Description=Distributed LLM coordinator or worker
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=distributed-llm
+Group=distributed-llm
+Environment=DLLM_HOME=/var/lib/distributed-llm
+Environment=DLLM_NO_BROWSER=1
+ExecStart=/usr/bin/python3 /opt/distributed-llm/run.py run
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/distributed-llm
+
+[Install]
+WantedBy=multi-user.target
