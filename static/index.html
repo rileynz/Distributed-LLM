@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Distributed LLM</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #081019;
+      --panel: #101c28;
+      --panel2: #142433;
+      --line: #26394a;
+      --text: #eef6ff;
+      --muted: #91a4b6;
+      --green: #44e09b;
+      --blue: #4ca9ff;
+      --amber: #ffbd5b;
+      --red: #ff6f78;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 80% -20%, #163a4e 0, transparent 38rem),
+        var(--bg);
+    }
+    header, main { width: min(1180px, calc(100% - 32px)); margin: auto; }
+    header {
+      padding: 32px 0 18px;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    h1 { font-size: clamp(27px, 4vw, 42px); margin: 0; letter-spacing: -.04em; }
+    h2 { font-size: 17px; margin: 0 0 14px; }
+    p { color: var(--muted); }
+    .eyebrow { color: var(--green); text-transform: uppercase; letter-spacing: .16em; font-size: 11px; font-weight: 800; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; padding-bottom: 40px; }
+    .card {
+      grid-column: span 12;
+      background: linear-gradient(145deg, rgba(20,36,51,.96), rgba(13,25,36,.96));
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 18px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.18);
+    }
+    .summary { grid-column: span 4; min-height: 130px; }
+    .wide { grid-column: span 8; }
+    .half { grid-column: span 6; }
+    .big { font-size: 24px; font-weight: 760; margin-top: 9px; }
+    .muted { color: var(--muted); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .between { justify-content: space-between; }
+    .pill {
+      display: inline-flex; padding: 5px 9px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; background: #203447; color: #bad3e7;
+    }
+    .good { color: var(--green); background: rgba(68,224,155,.11); }
+    .warn { color: var(--amber); background: rgba(255,189,91,.11); }
+    .bad { color: var(--red); background: rgba(255,111,120,.11); }
+    button, select, input {
+      border: 1px solid #355067;
+      border-radius: 9px;
+      background: #162a3b;
+      color: var(--text);
+      min-height: 38px;
+      padding: 8px 12px;
+      font: inherit;
+    }
+    button { cursor: pointer; font-weight: 700; }
+    button:hover { border-color: var(--blue); }
+    button.primary { background: var(--green); border-color: var(--green); color: #032118; }
+    button.danger { color: #ffdfe1; border-color: #713a42; }
+    button:disabled { cursor: not-allowed; opacity: .5; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; border-top: 1px solid var(--line); padding: 12px 8px; vertical-align: top; }
+    th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .models { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    .model { background: rgba(7,16,24,.42); border: 1px solid var(--line); border-radius: 11px; padding: 14px; }
+    .model h3 { margin: 0 0 4px; font-size: 16px; }
+    .model p { min-height: 38px; margin: 5px 0 12px; }
+    .notice { padding: 10px 12px; border-radius: 9px; background: rgba(76,169,255,.09); color: #b9dcff; }
+    .error { background: rgba(255,111,120,.11); color: #ffbdc2; }
+    dialog {
+      width: min(420px, calc(100% - 30px)); border: 1px solid var(--line);
+      border-radius: 15px; padding: 22px; background: var(--panel); color: var(--text);
+    }
+    dialog::backdrop { background: rgba(0,0,0,.72); }
+    .code { font: 700 26px ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .12em; color: var(--green); }
+    footer { width: min(1180px, calc(100% - 32px)); margin: 0 auto 30px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 800px) {
+      .summary, .wide, .half { grid-column: span 12; }
+      .models { grid-template-columns: 1fr; }
+      header { align-items: start; flex-direction: column; }
+      th:nth-child(3), td:nth-child(3) { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="eyebrow">Universal mesh control</div>
+      <h1 id="cluster-name">Distributed LLM</h1>
+    </div>
+    <div class="row">
+      <span class="pill warn">Trusted LAN only</span>
+      <button id="manage-button">Unlock management</button>
+    </div>
+  </header>
+  <main class="grid">
+    <section class="card summary">
+      <div class="muted">Cluster state</div>
+      <div class="big" id="cluster-state">Starting…</div>
+      <div class="muted" id="cluster-detail"></div>
+    </section>
+    <section class="card summary">
+      <div class="muted">Join code</div>
+      <div class="big code" id="join-code">••••••</div>
+      <div class="muted">Shown locally or after unlocking</div>
+    </section>
+    <section class="card summary">
+      <div class="muted">Inference</div>
+      <div class="big" id="model-state">Stopped</div>
+      <div class="row" style="margin-top:8px">
+        <a id="chat-link" target="_blank"><button disabled>Open chat</button></a>
+        <button class="danger admin" data-action="stop-model" disabled>Stop</button>
+      </div>
+    </section>
+
+    <section class="card wide">
+      <div class="row between">
+        <div>
+          <h2>Machines</h2>
+          <div class="muted">Devices are included only when their RAM and measured speed help.</div>
+        </div>
+        <span class="pill" id="node-count">0 online</span>
+      </div>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>Machine</th><th>State</th><th>Hardware</th><th>Free RAM</th><th>Backend</th></tr></thead>
+          <tbody id="nodes"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card summary">
+      <h2>Backend</h2>
+      <div id="backend-state" class="muted">Checking…</div>
+      <div class="row" style="margin-top:12px">
+        <select id="backend-variant" class="admin" disabled>
+          <option value="auto">Automatic / CPU fallback</option>
+          <option value="vulkan">Vulkan GPU</option>
+          <option value="cuda">NVIDIA CUDA</option>
+          <option value="rocm">AMD ROCm</option>
+        </select>
+        <button class="primary admin" data-action="install-backend" disabled>Install</button>
+      </div>
+    </section>
+
+    <section class="card half" id="pending-card" hidden>
+      <h2>Approval needed</h2>
+      <div id="pending"></div>
+    </section>
+
+    <section class="card half">
+      <h2>Performance profile</h2>
+      <div class="row">
+        <label>Context
+          <select id="context" class="admin" disabled>
+            <option value="2048">2K – fastest</option>
+            <option value="4096">4K – balanced</option>
+            <option value="8192">8K – long</option>
+            <option value="16384">16K – memory heavy</option>
+          </select>
+        </label>
+        <label>Parallel
+          <select id="parallel" class="admin" disabled>
+            <option value="1">1 request</option>
+            <option value="2">2 requests</option>
+            <option value="4">4 requests</option>
+          </select>
+        </label>
+        <label>KV cache
+          <select id="kv" class="admin" disabled>
+            <option value="q8_0">Q8 – recommended</option>
+            <option value="f16">FP16 – quality</option>
+          </select>
+        </label>
+        <button class="admin" data-action="save-settings" disabled>Save</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row between">
+        <div>
+          <h2>Models</h2>
+          <div class="muted">The fit result updates from the machines that are online now.</div>
+        </div>
+        <span class="pill">GGUF · CPU INT4/Q8</span>
+      </div>
+      <div class="models" id="models"></div>
+      <div class="model" style="margin-top:10px">
+        <h3>Custom GGUF model</h3>
+        <p>Use a `.gguf` path on the coordinator, or a Hugging Face <code>repo:quant</code> reference.</p>
+        <div class="row">
+          <input id="custom-source" class="admin" disabled style="flex:1;min-width:260px" placeholder="Qwen/Qwen3-4B-GGUF:Q4_K_M">
+          <input id="custom-size" class="admin" disabled type="number" min=".1" max="1000" step=".1" placeholder="Size GB" style="width:120px">
+          <button id="custom-start" class="primary admin" disabled>Run custom</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Important limitation</h2>
+      <div class="notice">The app can combine memory and backends across machines, but one response still crosses the selected devices in order. Adding a very slow machine helps a model fit, but may reduce single-chat speed. Portable workers use an encrypted outbound tunnel and expose no RPC port. Direct workers remain trusted-LAN only.</div>
+    </section>
+    <div id="message" class="card" hidden></div>
+  </main>
+  <footer>Distributed LLM Universal 0.3 · OpenAI-compatible API and chat are served by llama.cpp on port 8080.</footer>
+
+  <dialog id="unlock">
+    <form method="dialog">
+      <h2>Unlock cluster management</h2>
+      <p>Enter the six-digit join code printed on the coordinator.</p>
+      <input id="admin-code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" autofocus>
+      <div class="row" style="margin-top:14px">
+        <button value="cancel">Cancel</button>
+        <button value="default" class="primary" id="unlock-confirm">Unlock</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    let state = null;
+    let adminCode = sessionStorage.getItem("dllm-admin") || "";
+    const $ = (id) => document.getElementById(id);
+    const esc = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+    function managed() {
+      document.querySelectorAll(".admin").forEach(element => element.disabled = !adminCode);
+      $("manage-button").textContent = adminCode ? "Management unlocked" : "Unlock management";
+    }
+    function message(text, error=false) {
+      const box = $("message");
+      box.hidden = !text;
+      box.textContent = text;
+      box.className = "card" + (error ? " error" : "");
+    }
+    async function api(path, payload) {
+      const response = await fetch(path, {
+        method: payload === undefined ? "GET" : "POST",
+        headers: {"Content-Type":"application/json", "X-DLLM-Admin":adminCode},
+        body: payload === undefined ? undefined : JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+      return result;
+    }
+    async function unlockLocal() {
+      try {
+        const result = await api("/api/local/join-code");
+        adminCode = result.join_code;
+        sessionStorage.setItem("dllm-admin", adminCode);
+        managed();
+      } catch (_) {}
+    }
+    function render(data) {
+      state = data;
+      $("cluster-name").textContent = data.cluster_name;
+      const online = data.nodes.filter(node => node.online).length;
+      $("node-count").textContent = `${online} worker${online === 1 ? "" : "s"} online`;
+      const backendReady = Boolean(data.backend.server && data.backend.rpc_server);
+      $("cluster-state").textContent = backendReady ? "Ready to load" : "Setup required";
+      $("cluster-detail").textContent = backendReady ? `${online + 1} usable machine connection(s)` : "Install the inference backend";
+      if (adminCode) $("join-code").textContent = adminCode;
+
+      const inference = data.inference;
+      $("model-state").textContent = inference.healthy ? (inference.active_model || "Running") : (inference.running ? "Loading…" : "Stopped");
+      $("chat-link").href = inference.url;
+      $("chat-link").firstElementChild.disabled = !inference.healthy;
+
+      const local = data.local_hardware;
+      const rows = [{
+        name: `${local.hostname} (coordinator)`, online: true, rpc_running: data.backend.local_rpc.running,
+        hardware: local, local: true
+      }, ...data.nodes];
+      $("nodes").innerHTML = rows.map(node => {
+        const hw = node.hardware || {};
+        const stateClass = node.online ? "good" : "bad";
+        const gpu = (hw.gpus || []).length ? ` · ${esc(hw.gpus[0])}` : "";
+        const connection = node.local ? "Local" : node.worker_connection_mode === "outbound" ? "Portable tunnel" : "Direct LAN";
+        return `<tr>
+          <td><strong>${esc(node.name)}</strong><br><span class="muted">${esc(hw.os)} ${esc(hw.architecture)} · ${connection}</span></td>
+          <td><span class="pill ${stateClass}">${node.online ? "Online" : "Offline"}</span></td>
+          <td>${esc(hw.cpu || "Unknown")}${gpu}<br><span class="muted">${esc(hw.logical_cores || "?")} threads · ${esc(hw.memory_bandwidth_gbps || 0)} GB/s test</span></td>
+          <td>${esc(hw.ram_free_gb || 0)} / ${esc(hw.ram_total_gb || 0)} GB</td>
+          <td><span class="pill ${node.rpc_running ? "good" : "warn"}">${node.rpc_running ? "RPC ready" : "Not ready"}</span></td>
+        </tr>`;
+      }).join("");
+
+      const install = data.backend.install;
+      $("backend-state").textContent = backendReady ? "llama.cpp ready" : (install.message || "Not installed");
+      $("pending-card").hidden = data.pending.length === 0;
+      $("pending").innerHTML = data.pending.map(node => `<div class="model" style="margin-bottom:8px">
+        <strong>${esc(node.name)}</strong>
+        <div class="muted">${esc(node.hardware?.cpu || "Unknown CPU")} · ${esc(node.hardware?.ram_total_gb || 0)} GB RAM</div>
+        <div class="row" style="margin-top:9px">
+          <button class="primary admin" ${adminCode ? "" : "disabled"} onclick="approve('${esc(node.request_id || "")}')">Approve</button>
+          <button class="admin" ${adminCode ? "" : "disabled"} onclick="rejectNode('${esc(node.request_id || "")}')">Reject</button>
+        </div>
+      </div>`).join("");
+
+      $("context").value = String(data.settings.context_size);
+      $("parallel").value = String(data.settings.parallel_requests);
+      $("kv").value = data.settings.kv_cache;
+      $("models").innerHTML = data.models.map(model => {
+        const fitClass = model.fit === "Will not fit" ? "bad" : model.fit === "May be slow" ? "warn" : "good";
+        const active = inference.active_model === model.id;
+        const enabled = adminCode && model.fit !== "Will not fit" && backendReady && !active;
+        return `<div class="model">
+          <div class="row between"><h3>${esc(model.name)}</h3><span class="pill ${fitClass}">${esc(model.fit)}</span></div>
+          <p>${esc(model.description)} · ${esc(model.size_gb)} GB weights</p>
+          <div class="muted">${esc(model.plan.estimated_required_gb)} GB estimated · ${esc(model.plan.safe_capacity_gb)} GB safe capacity</div>
+          <button class="primary admin" style="margin-top:10px" ${enabled ? "" : "disabled"} onclick="startModel('${esc(model.id)}')">${active ? "Running" : "Download & run"}</button>
+        </div>`;
+      }).join("");
+      managed();
+    }
+    async function refresh() {
+      try { render(await api("/api/status")); message(""); }
+      catch (error) { message(error.message, true); }
+    }
+    async function action(path, payload={}) {
+      try { message("Working…"); await api(path, payload); await refresh(); }
+      catch (error) {
+        if (error.message.includes("join code")) { adminCode=""; sessionStorage.removeItem("dllm-admin"); managed(); }
+        message(error.message, true);
+      }
+    }
+    window.approve = (id) => action("/api/pending/approve", {request_id:id});
+    window.rejectNode = (id) => action("/api/pending/reject", {request_id:id});
+    window.startModel = (id) => action("/api/model/start", {model_id:id});
+    $("custom-start").addEventListener("click", () => action("/api/model/start", {
+      model_id:"custom",
+      custom:{source:$("custom-source").value.trim(), size_gb:Number($("custom-size").value)}
+    }));
+    document.querySelectorAll("[data-action]").forEach(button => button.addEventListener("click", () => {
+      const type = button.dataset.action;
+      if (type === "install-backend") action("/api/backend/install", {variant:$("backend-variant").value});
+      if (type === "stop-model") action("/api/model/stop");
+      if (type === "save-settings") action("/api/settings", {
+        context_size:Number($("context").value), parallel_requests:Number($("parallel").value), kv_cache:$("kv").value
+      });
+    }));
+    $("manage-button").addEventListener("click", () => {
+      if (adminCode) return;
+      $("unlock").showModal();
+    });
+    $("unlock").addEventListener("close", () => {
+      if ($("unlock").returnValue === "default") {
+        const value = $("admin-code").value.trim();
+        if (/^\d{6}$/.test(value)) {
+          adminCode = value; sessionStorage.setItem("dllm-admin", value); managed(); refresh();
+        }
+      }
+    });
+    managed();
+    unlockLocal().finally(refresh);
+    setInterval(refresh, 3000);
+  </script>
+</body>
+</html>

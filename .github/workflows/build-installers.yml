@@ -1,0 +1,159 @@
+name: Build installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without the leading v"
+        required: false
+        default: "0.3.0"
+  push:
+    tags: ["v*"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Create isolated Windows build environment
+        shell: powershell
+        run: |
+          python --version
+          python -m venv .windows-build-venv
+          $python = (Resolve-Path ".windows-build-venv\Scripts\python.exe").Path
+          & $python -m pip install --disable-pip-version-check --upgrade pip
+          & $python -m pip install --disable-pip-version-check -r requirements.txt "pyinstaller==6.14.2"
+          & $python -c "import cryptography, sys; assert sys.version_info[:2] == (3, 12); print('Windows build Python:', sys.executable); print('cryptography:', cryptography.__version__)"
+          "DLLM_PYTHON=$python" >> $env:GITHUB_ENV
+      - name: Verify corrected Windows build scripts
+        shell: powershell
+        run: |
+          $full = Get-Content "packaging/windows/build.ps1" -Raw
+          $portable = Get-Content "portable/windows/build-windows.ps1" -Raw
+          if (-not $full.Contains('$env:DLLM_PYTHON') -or -not $portable.Contains('$env:DLLM_PYTHON')) {
+            throw "Outdated Windows build files are at the repository root. Replace the root files with the corrected release before running this workflow."
+          }
+          & $env:DLLM_PYTHON -c "import cryptography, sys; print(sys.version); print(cryptography.__version__)"
+      - name: Resolve version
+        id: version
+        shell: powershell
+        run: |
+          $version = "${{ inputs.version }}"
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+      - name: Build Windows installer
+        shell: powershell
+        run: ./packaging/windows/build.ps1 -Version "${{ steps.version.outputs.value }}" -InstallTools
+      - name: Build admin-free portable Windows worker
+        shell: powershell
+        run: ./portable/windows/build-windows.ps1 -Version "${{ steps.version.outputs.value }}" -SkipTests
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          if-no-files-found: error
+          path: |
+            dist/windows/Distributed-LLM-Setup-*.exe
+            dist/windows/SHA256SUMS.txt
+            dist/portable/Distributed-LLM-Portable-Worker-Windows-*.zip
+            dist/portable/SHA256SUMS-windows-portable.txt
+
+  linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: python3 -m unittest discover -v
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          version="${{ inputs.version }}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+      - name: Build Linux installers
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          bash packaging/linux/build-deb.sh
+          bash packaging/linux/build-run.sh
+          cd dist
+          sha256sum *.deb *.run > SHA256SUMS-linux.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-installers
+          if-no-files-found: error
+          path: |
+            dist/*.deb
+            dist/*.run
+            dist/SHA256SUMS-linux.txt
+
+  portable-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            architecture: x64
+          - runner: ubuntu-24.04-arm
+            architecture: arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          version="${{ inputs.version }}"
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+      - name: Build admin-free portable Linux worker
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        # Calling bash explicitly works even when a ZIP/web upload loses Unix
+        # executable permission bits.
+        run: bash portable/linux/build-linux.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-linux-${{ matrix.architecture }}
+          if-no-files-found: error
+          path: |
+            dist/portable/Distributed-LLM-Portable-Worker-Linux-${{ matrix.architecture }}-*.tar.gz
+            dist/portable/SHA256SUMS-linux-${{ matrix.architecture }}-portable.txt
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux, portable-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+      - name: Publish release files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --generate-notes

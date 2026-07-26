@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+portable/runtime/backend/*
+!portable/runtime/backend/.gitkeep
